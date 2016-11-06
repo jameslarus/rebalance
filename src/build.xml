@@ -1,0 +1,72 @@
+<!--
+build file for ant
+http://jakarta.apache.org/ant/index.html
+-->
+
+<project name="rebalance" default="all" basedir=".">
+  <property name="version"  value="1.0"/>
+  <property name="src" value="."/>
+  <property file="${src}/user.properties"/>
+  <property name="build" value="./build"/>
+  <property name="privkeyfile" value="${src}/priv_key"/>
+  <property name="pubkeyfile" value="${src}/pub_key"/>
+  <property name="privkeyid" value="99"/>
+
+  <property name="build.compiler"  value="modern"/>
+  <property name="build.compiler.fulldepend"  value="true"/>
+  <property name="build.sysclasspath" value="ignore" /> <!-- suppress ridiculous "includeantruntime not set" messages from ant -->
+  <property name="build.includeantruntime" value="false"/>
+  <property name="dist"  value="../dist"/>
+  <property name="tmp"  value="../tmp"/>
+  <property name="debug"  value="on"/>
+  <property name="optimize"  value="on"/>
+
+  <path id="classpath">
+    <pathelement path="../lib/extadmin.jar"/>
+    <pathelement path="../lib/moneydance-dev.jar"/>
+  </path>
+
+  <target name="init">
+    <mkdir dir="${dist}"/>
+    <mkdir dir="${build}"/>
+  </target>   
+
+  <target name="rebalance" depends="init">
+    <javac target="1.8" source="1.8" srcdir="${src}" debug="${debug}" optimize="${optimize}"
+      classpathref="classpath"  destdir="${build}"
+      includes="com/moneydance/modules/features/rebalance/**"/>
+
+    <jar destfile="${dist}/rebalance.mxt">
+      <fileset dir="${src}" includes="
+             com/moneydance/modules/features/rebalance/meta_info.dict
+             com/moneydance/modules/features/rebalance/*.gif
+             com/moneydance/modules/features/rebalance/*.jpg
+             com/moneydance/modules/features/rebalance/*.jpeg"/>
+      <fileset dir="${build}" includes="com/moneydance/modules/features/rebalance/**"/>
+    </jar>
+
+    <java newenvironment="true" 
+      classpathref="classpath"
+      classname="com.moneydance.admin.KeyAdmin">
+      <arg value="signextjar"/>
+      <arg value="${privkeyfile}"/>
+      <arg value="${privkeyid}"/>
+      <arg value="rebalance"/>
+      <arg line="${dist}/rebalance.mxt"/>
+    </java>
+    <move file="${src}/s-rebalance.mxt" tofile="${dist}/rebalance.mxt"/>
+  </target>
+
+  <target name="genkeys">
+    <java 
+      classpathref="classpath"
+      classname="com.moneydance.admin.KeyAdmin">
+      <arg value="genkey"/>
+      <arg value="${privkeyfile}"/>
+      <arg value="${pubkeyfile}"/>
+    </java>
+  </target>
+
+  <target name="all" depends="rebalance"/>
+
+</project>
