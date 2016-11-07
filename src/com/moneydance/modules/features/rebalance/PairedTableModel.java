@@ -65,13 +65,8 @@ class PairedTableModel extends DefaultTableModel {
         return footer;
     }
 
-    @Override
-    public boolean isCellEditable(int row, int column) {
-        return true;
-    }
-
     public void setValueAt(Object value, int row, int col) {
-        ((Vector<Object>)dataVector.get(row)).set(col, value); // Only edit data model
+        ((Vector<Object>)dataVector.get(row)).set(col, value);
         fireTableCellUpdated(row, col);
     }
 }

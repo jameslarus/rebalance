@@ -32,7 +32,6 @@
 package com.moneydance.modules.features.rebalance;
 
 import javax.swing.*;
-import javax.swing.table.*;
 import java.awt.*;
 
 class PairedTablePanel extends JPanel {
@@ -44,52 +43,5 @@ class PairedTablePanel extends JPanel {
         add(table);
         add(table.getFooterTable());
         setBorder(BorderFactory.createMatteBorder(1, 1, 1, 1, Color.GRAY));
-    }
-
-    private void adjustColumnPreferredWidths(PairedTable table) {
-        for (int col = 0; col < table.getColumnCount(); col++) {
-            TableColumnModel columnModel = table.getColumnModel();
-            TableColumn column = columnModel.getColumn(col);
-            int maxWidth = column.getPreferredWidth();
-            maxWidth = Math.max(maxWidth, findColumnPreferredWidth(table, col));
-            maxWidth = Math.max(maxWidth, findColumnPreferredWidth(table.getFooterTable(), col));
-            maxWidth = Math.max(maxWidth, findHeaderPreferredWidth(table, col));
-
-            column.setPreferredWidth(maxWidth);
-        }
-    }
-
-    private int findColumnPreferredWidth(JTable table, int col) {
-        int maxWidth = 0;
-        int fontSizeIncrease = 2;
-        for (int row = 0; row < table.getRowCount(); row++) {
-            TableCellRenderer rend = table.getCellRenderer(row, col);
-            Object value = table.getValueAt(row, col);
-            Component comp = rend.getTableCellRendererComponent(table, value, false, false, row, col);
-            int increasedWidth = 0;
-            int preferredWidth = comp.getPreferredSize().width;
-
-            // workaround--getPreferredSize insufficient for (at least some) numbers, so set width based on larger font size
-            if (value instanceof Number) {
-                JLabel comp1 = (JLabel) comp;
-                Font f1 = comp1.getFont().deriveFont(comp1.getFont().getSize() + fontSizeIncrease);
-                comp1.setFont(f1);
-                increasedWidth = comp1.getPreferredSize().width;
-            }
-            maxWidth = Math.max(maxWidth, Math.max(preferredWidth, increasedWidth));
-        }
-        return maxWidth;
-    }
-
-    private int findHeaderPreferredWidth(JTable table, int col) {
-        TableColumnModel columnModel = table.getColumnModel();
-        TableColumn column = columnModel.getColumn(col);
-        TableCellRenderer headerRenderer = column.getHeaderRenderer();
-        if (headerRenderer == null) {
-            headerRenderer = table.getTableHeader().getDefaultRenderer();
-        }
-        Object headerValue = column.getHeaderValue();
-        Component headerComp = headerRenderer.getTableCellRendererComponent(table, headerValue, false, false, -1, col);
-        return headerComp.getPreferredSize().width;
     }
 }

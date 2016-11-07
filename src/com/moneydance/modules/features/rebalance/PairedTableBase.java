@@ -47,6 +47,12 @@ import java.text.NumberFormat;
 class PairedTableBase extends JTable {
     PairedTableBase(TableModel tableModel) {
         super(tableModel);
+        createDefaultEditors();
+        setRowSelectionAllowed(false);
+        setColumnSelectionAllowed(false);
+        setCellSelectionEnabled(true);
+        setCellEditor(new DefaultCellEditor(new JTextField()));
+        putClientProperty("terminateEditOnFocusLost", Boolean.TRUE);
     }
 
     PairedTableModel getDataModel() {
@@ -109,14 +115,52 @@ class PairedTableBase extends JTable {
         repaint();
     }
 
-    // Render a currency with given number of fractional digits. NaN or null is an empty cell.
+    // Base class for rendering a table cell. NaN or null leaves an empty cell.
     // Negative values are red.
-    private class CurrencyRenderer extends DefaultTableCellRenderer {
+    private class PairedRenderer extends DefaultTableCellRenderer {
+        protected Double doubleValue;
+
+        boolean isCloseToZero(Double value) {
+            return Math.abs(value) < 0.01;
+        }
+
+        @Override
+        public void setValue(Object value) {
+            try {
+                setText("?");
+                if (value == null) {
+                    setText("");
+                    return;
+                }
+                if (value instanceof String) {
+                    value = Double.valueOf((String) value);
+                }
+                doubleValue = (Double) value;
+                if (Double.isNaN(doubleValue)) {
+                    setText("");
+                } else {
+                    if (isCloseToZero(doubleValue)) {
+                        doubleValue = 0.0;
+                    }
+                    // setText here
+                    if (doubleValue < 0.0) {
+                        setForeground(Color.RED);
+                    } else {
+                        setForeground(Color.BLACK);
+                    }
+                }
+            } catch (Exception e) {
+                setText("exp");
+            }
+        }
+    }
+
+    // Render a currency with given number of fractional digits.
+    private class CurrencyRenderer extends PairedRenderer {
         private final boolean noDecimals;
         private final CurrencyType relativeTo;
         private final char decimalSeparator = '.'; // ToDo: Set from preferences (how?)
         private final NumberFormat noDecimalFormatter;
-
 
         CurrencyRenderer(CurrencyType currency, boolean noDecimals) {
             super();
@@ -133,91 +177,75 @@ class PairedTableBase extends JTable {
             noDecimalFormatter.setMaximumFractionDigits(0);
         }
 
-        boolean isZero(Double value) {
+        @Override
+        boolean isCloseToZero(Double value) {
             return Math.abs(value) < 0.01;
         }
 
         @Override
         public void setValue(Object value) {
-            if (value == null) {
-                setText("");
-            } else if (Double.isNaN((Double) value)) {
-                setText("");
-            } else {
-                if (isZero((Double) value)) {
-                    value = 0.0;
+            try {
+                super.setValue(value);
+                if (getText().equals("?")) {
+                    if (noDecimals) {
+                        // MD format functions can't print comma-separated values without a decimal point so
+                        // we have to do it ourselves
+                        final double scaledValue = doubleValue * relativeTo.getUserRate();
+                        setText(relativeTo.getPrefix() + " " + noDecimalFormatter.format(scaledValue)
+                                + relativeTo.getSuffix());
+                    } else {
+                        final long scaledValue = relativeTo.convertValue(relativeTo.getLongValue(doubleValue));
+                        setText(relativeTo.formatFancy(scaledValue, decimalSeparator));
+                    }
                 }
-                if (noDecimals) {
-                    // MD format functions can't print comma-separated values without a decimal point so
-                    // we have to do it ourselves
-                    final double scaledValue = (Double) value * relativeTo.getUserRate();
-                    setText(relativeTo.getPrefix() + " " + noDecimalFormatter.format(scaledValue) + relativeTo.getSuffix());
-                } else {
-                    final long scaledValue = relativeTo.convertValue(relativeTo.getLongValue((Double) value));
-                    setText(relativeTo.formatFancy(scaledValue, decimalSeparator));
-                }
-                if ((Double) value < 0.0) {
-                    setForeground(Color.RED);
-                } else {
-                    setForeground(Color.BLACK);
-                }
+            } catch (Exception e) {
+                setText("exp");
             }
         }
     }
 
     // Render a percentage with 2 digits after the decimal point. Conventions as CurrencyRenderer
-    private class PercentRenderer extends DefaultTableCellRenderer {
+    private class PercentRenderer extends PairedRenderer {
         private final char decimalSeparator = '.'; // ToDo: Set from preferences (how?)
 
         PercentRenderer() {
             super();
         }
 
-        private boolean isZero(Double value) {
+        @Override
+        boolean isCloseToZero(Double value) {
             return Math.abs(value) < 0.0001;
         }
 
         @Override
         public void setValue(Object value) {
-            if (value == null) {
-                setText("");
-            } else if (Double.isNaN((Double) value)) {
-                setText("");
-            } else {
-                if (isZero((Double) value)) {
-                    value = 0.0;
+            try {
+                super.setValue(value);
+                if (getText().equals("?")) {
+                    setText(StringUtils.formatPercentage(doubleValue, decimalSeparator) + "%");
+
                 }
-                setText(StringUtils.formatPercentage((Double) value, decimalSeparator) + "%");
-                if ((Double) value < 0.0) {
-                    setForeground(Color.RED);
-                } else {
-                    setForeground(Color.BLACK);
-                }
+            } catch (Exception e) {
+                setText("exp");
             }
         }
     }
 
     // Render an integer. Conventions as CurrencyRenderer
-    private class IntegerRenderer extends DefaultTableCellRenderer {
+    private class IntegerRenderer extends PairedRenderer {
         IntegerRenderer() {
             super();
         }
 
         @Override
         public void setValue(Object value) {
-            if (value == null) {
-                setText("");
-            } else if (Double.isNaN((Double) value)) {
-                setText("");
-            } else {
-                Double num = (Double)value;
-                long intNum = Math.round(num);
-                setText(Long.toString(intNum));
-                if (intNum < 0) {
-                    setForeground(Color.RED);
-                } else {
-                    setForeground(Color.BLACK);
+            try {
+                super.setValue(value);
+                if (getText().equals("?")) {
+                    setText(Long.toString(Math.round(doubleValue)));
                 }
+            } catch (Exception e) {
+                setText("exp");
             }
         }
     }

@@ -168,7 +168,10 @@ class ReBalanceWindow extends JFrame implements ChangeListener, ItemListener, Ta
         Vector<Vector<Object>> footer = new Vector<>();
 
         fillRebalanceTable(accountName, data, footer);
-        return new PairedTableModel(data, footer, columnNames, columnTypes, account.getCurrencyType());
+        return new PairedTableModel(data, footer, columnNames, columnTypes, account.getCurrencyType()) {
+            @Override
+            public boolean isCellEditable(int row, int column) { return column == TARGET_COL; }
+        };
     }
 
     private void fillRebalanceTable(String accountName, Vector<Vector<Object>> data, Vector<Vector<Object>> footer) {
