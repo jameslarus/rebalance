@@ -66,7 +66,11 @@ class PairedTableModel extends DefaultTableModel {
     }
 
     public void setValueAt(Object value, int row, int col) {
-        ((Vector<Object>)dataVector.get(row)).set(col, Double.parseDouble((String)value));
+        if (columnTypes.get(col).equals("String")) {
+            ((Vector<Object>) dataVector.get(row)).set(col, value);
+        } else {
+            ((Vector<Object>) dataVector.get(row)).set(col, Double.parseDouble((String) value));
+        }
         fireTableCellUpdated(row, col);
     }
 }

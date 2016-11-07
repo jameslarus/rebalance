@@ -122,12 +122,12 @@ class ReBalanceWindow extends JFrame implements ChangeListener, ItemListener, Ta
 
         // Row 3
         PairedTableModel tableModel = createRebalanceTableModel((String) accountList.getSelectedItem());
-        tableModel.addTableModelListener(this);
         rebalanceTable = new PairedTable(tableModel);
         c.gridx = 0;
         c.gridwidth = 3;
         c.gridy = 2;
         pane.add(new PairedTablePanel(rebalanceTable), c);
+        tableModel.addTableModelListener(this);
 
         setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
         enableEvents(WindowEvent.WINDOW_CLOSING);
@@ -303,7 +303,6 @@ class ReBalanceWindow extends JFrame implements ChangeListener, ItemListener, Ta
 
     // Checkboxes and spinners
     public void stateChanged(ChangeEvent e) {
-        rebalance(rebalanceTable.getDataVector(), rebalanceTable.getFooterDataVector());
         rebalanceTable.dataChanged();
     }
 
@@ -317,9 +316,8 @@ class ReBalanceWindow extends JFrame implements ChangeListener, ItemListener, Ta
 
     // The table
     public void tableChanged(TableModelEvent e) {
-        rebalanceTable.getDataModel().removeTableModelListener(this);
+        rebalanceTable.getDataModel().removeTableModelListener(this); // Avoid recursion
         rebalance(rebalanceTable.getDataVector(), rebalanceTable.getFooterDataVector());
-        rebalanceTable.dataChanged();
         rebalanceTable.getDataModel().addTableModelListener(this);
     }
 
