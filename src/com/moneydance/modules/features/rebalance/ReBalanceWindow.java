@@ -47,7 +47,7 @@ import java.awt.event.*;
 // Window used for the ReBalance interface
 
 class ReBalanceWindow extends JFrame implements ChangeListener, ItemListener, TableModelListener {
-    Main extension;
+    private Main extension;
     private AccountBook book;
 
     private JComboBox<String> accountList;
@@ -121,7 +121,9 @@ class ReBalanceWindow extends JFrame implements ChangeListener, ItemListener, Ta
         pane.add(amtPanel, c);
 
         // Row 3
-        rebalanceTable = new PairedTable(createRebalanceTableModel((String) accountList.getSelectedItem()));
+        PairedTableModel tableModel = createRebalanceTableModel((String) accountList.getSelectedItem());
+        tableModel.addTableModelListener(this);
+        rebalanceTable = new PairedTable(tableModel);
         c.gridx = 0;
         c.gridwidth = 3;
         c.gridy = 2;
@@ -315,16 +317,16 @@ class ReBalanceWindow extends JFrame implements ChangeListener, ItemListener, Ta
 
     // The table
     public void tableChanged(TableModelEvent e) {
+        rebalanceTable.getDataModel().removeTableModelListener(this);
         rebalance(rebalanceTable.getDataVector(), rebalanceTable.getFooterDataVector());
-        rebalanceTable.repaint();
+        rebalanceTable.dataChanged();
+        rebalanceTable.getDataModel().addTableModelListener(this);
     }
 
     public final void processEvent(AWTEvent evt) {
         if (evt.getID() == WindowEvent.WINDOW_CLOSING) {
             extension.closeRebalanceWindow();
             return;
-        }
-        if (evt.getID() == WindowEvent.WINDOW_OPENED) {
         }
         super.processEvent(evt);
     }

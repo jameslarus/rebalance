@@ -38,16 +38,13 @@ import com.moneydance.apps.md.controller.FeatureModuleContext;
 import java.io.*;
 import java.awt.*;
 
-/**
- * Pluggable module used to give users access to a Account List
- * interface to Moneydance.
- */
+// Pluggable module used to rebalance an Account
 
 public class Main extends FeatureModule {
     private ReBalanceWindow rebalanceWindow = null;
 
     public void init() {
-        // the first thing we will do is register this module to be invoked
+        // The first thing we will do is register this module to be invoked
         // via the application toolbar
         FeatureModuleContext context = getContext();
         try {
@@ -79,9 +76,7 @@ public class Main extends FeatureModule {
         return null;
     }
 
-    /**
-     * Process an invocation of this module with the given URI
-     */
+     // Process an invocation of this module with the given URI
     public void invoke(String uri) {
         String command = uri;
         String parameters = "";
