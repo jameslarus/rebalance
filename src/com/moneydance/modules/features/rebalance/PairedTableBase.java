@@ -118,7 +118,7 @@ class PairedTableBase extends JTable {
     // Base class for rendering a table cell. NaN or null leaves an empty cell.
     // Negative values are red.
     private class PairedRenderer extends DefaultTableCellRenderer {
-        protected Double doubleValue;
+        Double doubleValue;
 
         boolean isCloseToZero(Double value) {
             return Math.abs(value) < 0.01;
