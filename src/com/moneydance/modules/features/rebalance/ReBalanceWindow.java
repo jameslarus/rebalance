@@ -172,7 +172,9 @@ class ReBalanceWindow extends JFrame implements ChangeListener, ItemListener, Ta
         fillRebalanceTable(accountName, data, footer);
         return new PairedTableModel(data, footer, columnNames, columnTypes, account.getCurrencyType()) {
             @Override
-            public boolean isCellEditable(int row, int column) { return column == TARGET_COL; }
+            public boolean isCellEditable(int row, int column) {
+                return column == TARGET_COL;
+            }
         };
     }
 
@@ -196,6 +198,7 @@ class ReBalanceWindow extends JFrame implements ChangeListener, ItemListener, Ta
             createEntry(footer, account, "Cash", cashValue);
         }
 
+        // Total value
         Vector<Object> entry = new Vector<>(names.length);
         entry.add("Total");
         entry.add(null);
@@ -239,36 +242,48 @@ class ReBalanceWindow extends JFrame implements ChangeListener, ItemListener, Ta
     }
 
     private void rebalance(Vector<Vector<Object>> data, Vector<Vector<Object>> footer, Double totalValue) {
-        Double availableFunds = 0.0;
-        for (Vector<Object> aData : data) {
-            availableFunds += extractExcessValue(aData, totalValue);
+        Vector<Object> cashEntry = footer.get(0);
+        Double cash = (Double)cashEntry.get(VALUE_COL);
+        Double availableFunds = cash;
+
+        // Sell excess shares
+        for (Vector<Object> entry : data) {
+            entry.set(SELL_COL, null);
+            entry.set(BUY_COL, null);
+            availableFunds += extractExcessValue(entry, totalValue);
         }
-        availableFunds += extractExcessValue(footer.get(0), totalValue); // Cash
 
         // Spend funds on new shares
-        for (Vector<Object> aData : data) {
-            availableFunds = useExcessValue(aData, totalValue, availableFunds);
+        for (Vector<Object> entry : data) {
+            availableFunds -= useExcessValue(entry, totalValue, availableFunds);
         }
-        availableFunds = useExcessValue(footer.get(0), totalValue, availableFunds); // Cash
+
+        // Adjust cash
+        cashEntry.set(SELL_COL, null);
+        cashEntry.set(BUY_COL, null);
+        if (!cash.equals(availableFunds)) {
+            if (cash > availableFunds) {
+                cashEntry.set(SELL_COL, cash - availableFunds);
+            } else {
+                cashEntry.set(BUY_COL, availableFunds - cash);
+            }
+        }
+        cashEntry.set(RESULT_COL, availableFunds / totalValue);
         //ToDo: use remaining funds?
     }
 
-    // Find excess value of securities that exceed target by appropriate amount (either % or magnitude)
+    // Find excess value of securities that exceed target by appropriate amount (either % or magnitude).
+    // Return amount of sale or purchase
     private Double extractExcessValue(Vector<Object> entry, Double totalValue) {
         Double targetError = (Double) entry.get(ACTUAL_COL) - (Double) entry.get(TARGET_COL);
         if (targetError > 0.0) {
             Double price = (Double) entry.get(PRICE_COL);
-            Double value = (Double) entry.get(VALUE_COL);
-            Double valueError = Math.min(value * (1.0 - (Double) entry.get(TARGET_COL)), targetError * totalValue);
+            Double valueError = targetError * totalValue;
             Double sharesToSell = Math.floor(valueError / price);
-            Double percentLimit = percentThresholdCheckbox.isSelected() ? (Double) percentThreshold.getValue() / 100.0
-                    : Double.MAX_VALUE;
-            Double valueLimit = valueThresholdCheckbox.isSelected() ? (Double) valueThreshold.getValue()
-                    : Double.MAX_VALUE;
-            if ((targetError > percentLimit) || (valueError > valueLimit)) {
+            if (sharesToSell > 0.0 && exceedsALimit(targetError, valueError)) {
                 entry.set(SELL_COL, sharesToSell);
-                Double newShares = (Double) entry.get(SHARE_COL) - sharesToSell;
-                entry.set(RESULT_COL, (newShares * price) / totalValue);
+                Double oldShares = (Double) entry.get(SHARE_COL) - sharesToSell;
+                entry.set(RESULT_COL, (oldShares * price) / totalValue);
                 return sharesToSell * price;
             } else {
                 entry.set(RESULT_COL, entry.get(ACTUAL_COL));
@@ -280,26 +295,29 @@ class ReBalanceWindow extends JFrame implements ChangeListener, ItemListener, Ta
     private Double useExcessValue(Vector<Object> entry, Double totalValue, Double availableFunds) {
         Double targetError = (Double) entry.get(TARGET_COL) - (Double) entry.get(ACTUAL_COL);
         if (targetError > 0.0) {
+            Double valueError = targetError * totalValue;
             Double price = (Double) entry.get(PRICE_COL);
-            Double value = (Double) entry.get(VALUE_COL);
-            Double valueError = Math.max(value * (1.0 - (Double) entry.get(TARGET_COL)), targetError * totalValue);
             Double sharesToBuy = Math.floor(valueError / price);
-            Double percentLimit = percentThresholdCheckbox.isSelected() ? (Double) percentThreshold.getValue() / 100.0
-                    : Double.MAX_VALUE;
-            Double valueLimit = valueThresholdCheckbox.isSelected() ? (Double) valueThreshold.getValue()
-                    : Double.MAX_VALUE;
-            if ((targetError > percentLimit) || (valueError > valueLimit)) {
+            if (sharesToBuy > 0.0 && exceedsALimit(targetError, valueError)) {
                 entry.set(BUY_COL, sharesToBuy);
                 Double newShares = (Double) entry.get(SHARE_COL) + sharesToBuy;
                 entry.set(RESULT_COL, (newShares * price) / totalValue);
-                availableFunds -= sharesToBuy * price;
-                return availableFunds;
+                return sharesToBuy * price;
             } else {
                 entry.set(RESULT_COL, entry.get(ACTUAL_COL));
             }
         }
-        return availableFunds;
+        return 0.0;
     }
+
+    private boolean exceedsALimit(Double targetError, Double valueError) {
+        Double percentLimit = percentThresholdCheckbox.isSelected() ? (Double) percentThreshold.getValue() / 100.0
+                : Double.MAX_VALUE;
+        Double valueLimit = valueThresholdCheckbox.isSelected() ? (Double) valueThreshold.getValue()
+                : Double.MAX_VALUE;
+        return (targetError > percentLimit) || (valueError > valueLimit);
+    }
+
 
     // Checkboxes and spinners
     public void stateChanged(ChangeEvent e) {
@@ -317,6 +335,7 @@ class ReBalanceWindow extends JFrame implements ChangeListener, ItemListener, Ta
     // The table
     public void tableChanged(TableModelEvent e) {
         rebalanceTable.getDataModel().removeTableModelListener(this); // Avoid recursion
+        rebalanceTable.dataChanged(); // Force change event on footer table as well (in case enterred directly)
         rebalance(rebalanceTable.getDataVector(), rebalanceTable.getFooterDataVector());
         rebalanceTable.getDataModel().addTableModelListener(this);
     }
