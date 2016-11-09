@@ -42,6 +42,7 @@ import java.util.*;
 
 import javax.swing.*;
 import javax.swing.event.*;
+import javax.swing.table.TableCellRenderer;
 import java.awt.*;
 import java.awt.event.*;
 
@@ -56,9 +57,12 @@ class ReBalanceWindow extends JFrame implements ChangeListener, ItemListener, Ta
     private JComboBox<String> accountList;
     private JCheckBox percentThresholdCheckbox;
     private JSpinner percentThreshold;
+    private final double percentThresholdDefault = 1.0; // 1%
     private JCheckBox valueThresholdCheckbox;
     private JSpinner valueThreshold;
+    private final int valueThresholdDefault = 1000;
     private PairedTable rebalanceTable;
+    private Color LightGoldenRodYellow = new Color(0XFAFAD2);
 
     ReBalanceWindow(Main extension) {
         super("ReBalance Investment Account");
@@ -102,11 +106,9 @@ class ReBalanceWindow extends JFrame implements ChangeListener, ItemListener, Ta
 
         JPanel ptPanel = new JPanel();
         percentThresholdCheckbox = new JCheckBox("", false);
-        percentThresholdCheckbox.addChangeListener(this);
         ptPanel.add(percentThresholdCheckbox);
-        SpinnerModel percentModel = new SpinnerNumberModel(10.0, 0.0, 100.0, 0.1);
+        SpinnerModel percentModel = new SpinnerNumberModel(percentThresholdDefault, 0.0, 100.0, 0.1);
         percentThreshold = new JSpinner(percentModel);
-        percentThreshold.addChangeListener(this);
         ptPanel.add(percentThreshold);
         c.gridx = 1;
         c.gridy = 1;
@@ -114,20 +116,37 @@ class ReBalanceWindow extends JFrame implements ChangeListener, ItemListener, Ta
 
         JPanel amtPanel = new JPanel();
         valueThresholdCheckbox = new JCheckBox("", false);
-        valueThresholdCheckbox.addChangeListener(this);
         amtPanel.add(valueThresholdCheckbox);
-        SpinnerModel valueModel = new SpinnerNumberModel(1000, 0, 100000, 1);
+        SpinnerModel valueModel = new SpinnerNumberModel(valueThresholdDefault, 0, 100000, 100);
         valueThreshold = new JSpinner(valueModel);
-        valueThreshold.addChangeListener(this);
         amtPanel.add(valueThreshold);
         c.gridx = 2;
         c.gridy = 1;
         pane.add(amtPanel, c);
 
+        // Set preferences before adding listeners to avoid running them before table is created
+        setThresholdPreferences();
+        percentThresholdCheckbox.addChangeListener(this);
+        percentThreshold.addChangeListener(this);
+        valueThresholdCheckbox.addChangeListener(this);
+        valueThreshold.addChangeListener(this);
+
         // Row 3
         PairedTableModel tableModel = createRebalanceTableModel((String) accountList.getSelectedItem());
-        rebalanceTable = new PairedTable(tableModel); // Order of operations matters!
-        setThresholdPreferences();
+        rebalanceTable = new PairedTable(tableModel) {
+            @Override
+            public Component prepareRenderer(TableCellRenderer renderer, int row, int column) {
+                Component c = super.prepareRenderer(renderer, row, column);
+                if (column == TARGET_COL) {
+                    c.setBackground(LightGoldenRodYellow);
+                }
+                if (column ==BUY_COL) {
+                    JComponent jc = (JComponent) c;
+                    jc.setBorder(BorderFactory.createMatteBorder(0, 2, 0, 0, Color.BLACK));
+                }
+                return c;
+            }
+        };
         c.gridx = 0;
         c.gridwidth = 3;
         c.gridy = 2;
@@ -154,6 +173,7 @@ class ReBalanceWindow extends JFrame implements ChangeListener, ItemListener, Ta
         return accounts;
     }
 
+
     private final String[] names = {"Name", "Target", "Actual", "Shares", "Price", "Value", "Buy", "Sell", "Result"};
     private final Vector<String> columnNames = new Vector<>(Arrays.asList(names));
     private final int NAME_COL = columnNames.indexOf("Name");
@@ -179,7 +199,7 @@ class ReBalanceWindow extends JFrame implements ChangeListener, ItemListener, Ta
             @Override
             public boolean isCellEditable(int row, int column) {
                 return column == TARGET_COL;
-            }
+            };
         };
     }
 
@@ -256,7 +276,7 @@ class ReBalanceWindow extends JFrame implements ChangeListener, ItemListener, Ta
             entry.set(SELL_COL, null);
             entry.set(BUY_COL, null);
             availableFunds += extractExcessValue(entry, totalValue);
-            totalTarget += entry.get(TARGET_COL) == null ? 0.0 : (Double)entry.get(TARGET_COL);
+            totalTarget += entry.get(TARGET_COL) == null ? 0.0 : (Double) entry.get(TARGET_COL);
         }
 
         // Spend funds on new shares
@@ -267,7 +287,7 @@ class ReBalanceWindow extends JFrame implements ChangeListener, ItemListener, Ta
         // Adjust cash
         cashEntry.set(SELL_COL, null);
         cashEntry.set(BUY_COL, null);
-        totalTarget += cashEntry.get(TARGET_COL) == null ? 0.0 : (Double)cashEntry.get(TARGET_COL);
+        totalTarget += cashEntry.get(TARGET_COL) == null ? 0.0 : (Double) cashEntry.get(TARGET_COL);
         if (!cash.equals(availableFunds)) {
             if (cash > availableFunds) {
                 cashEntry.set(SELL_COL, cash - availableFunds);
@@ -275,8 +295,8 @@ class ReBalanceWindow extends JFrame implements ChangeListener, ItemListener, Ta
                 cashEntry.set(BUY_COL, availableFunds - cash);
             }
         }
+        cashEntry.set(TARGET_COL, null); // No cash target
         cashEntry.set(RESULT_COL, availableFunds / totalValue);
-        //ToDo: use remaining funds?
 
         footer.get(1).set(TARGET_COL, totalTarget);
         if (rebalanceTable != null) { // Nothing to save when table is being created
@@ -331,6 +351,8 @@ class ReBalanceWindow extends JFrame implements ChangeListener, ItemListener, Ta
     }
 
 
+    // Listeners:
+    //
     // Checkboxes and spinners
     public void stateChanged(ChangeEvent e) {
         rebalanceTable.dataChanged();
@@ -352,10 +374,19 @@ class ReBalanceWindow extends JFrame implements ChangeListener, ItemListener, Ta
         rebalanceTable.getDataModel().addTableModelListener(this);
     }
 
+    public final void processEvent(AWTEvent evt) {
+        if (evt.getID() == WindowEvent.WINDOW_CLOSING) {
+            extension.closeRebalanceWindow();
+            return;
+        }
+        super.processEvent(evt);
+    }
+
 
     // Save / restore preferences
+    //
     private static final String RB_PREF = "ReBalance";
-    private static final String SEP = "%%%ß";
+    private static final String SEP = "%%";
     private static final String PT_CHECKBOX = "PTCheckbox";
     private static final String PT_THRESHOLD = "PTThreshold";
     private static final String VT_CHECKBOX = "VTCheckbox";
@@ -370,7 +401,7 @@ class ReBalanceWindow extends JFrame implements ChangeListener, ItemListener, Ta
         up.setSetting(RB_PREF + SEP + VT_CHECKBOX, valueThresholdCheckbox.isSelected());
         up.setSetting(RB_PREF + SEP + VT_THRESHOLD, valueThreshold.getValue().toString());
 
-        String acct = (String) accountList.getSelectedItem();
+        String account = (String) accountList.getSelectedItem();
         StreamVector securities = new StreamVector();
         StreamVector targets = new StreamVector();
         for (int i = 0; i < rebalanceTable.getRowCount(); i++) {
@@ -378,36 +409,30 @@ class ReBalanceWindow extends JFrame implements ChangeListener, ItemListener, Ta
             securities.add(entry.get(NAME_COL));
             targets.add(entry.get(TARGET_COL).toString());
         }
-        up.setSetting(RB_PREF + SEP + ACCOUNT + SEP + acct + SEP + SECURITIES, securities);
-        up.setSetting(RB_PREF + SEP + ACCOUNT + SEP + acct + SEP + TARGETS, targets);
+        up.setSetting(RB_PREF + SEP + ACCOUNT + SEP + account + SEP + SECURITIES, securities);
+        up.setSetting(RB_PREF + SEP + ACCOUNT + SEP + account + SEP + TARGETS, targets);
     }
 
     private void setThresholdPreferences() {
         percentThresholdCheckbox.setSelected(up.getBoolSetting(RB_PREF + SEP + PT_CHECKBOX, false));
-        percentThreshold.setValue(Double.parseDouble(up.getSetting(RB_PREF + SEP + PT_THRESHOLD, "0.1")));
+        String defaultThreshold = Double.toString(percentThresholdDefault);
+        percentThreshold.setValue(Double.parseDouble(up.getSetting(RB_PREF + SEP + PT_THRESHOLD, defaultThreshold)));
 
         valueThresholdCheckbox.setSelected(up.getBoolSetting(RB_PREF + SEP + VT_CHECKBOX, false));
-        valueThreshold.setValue(Integer.parseInt(up.getSetting(RB_PREF + SEP + VT_THRESHOLD, "1000")));
+        defaultThreshold = Integer.toString(valueThresholdDefault);
+        valueThreshold.setValue(Integer.parseInt(up.getSetting(RB_PREF + SEP + VT_THRESHOLD, defaultThreshold)));
     }
 
-    private Double getTargetPreference(String acct, String securityName) {
+    private Double getTargetPreference(String account, String securityName) {
         StreamVector securities = new StreamVector();
         StreamVector targets = new StreamVector();
-        securities = up.getVectorSetting(RB_PREF + SEP + ACCOUNT + SEP + acct + SEP + SECURITIES, securities);
-        targets = up.getVectorSetting(RB_PREF + SEP + ACCOUNT + SEP + acct + SEP + TARGETS, targets);
+        securities = up.getVectorSetting(RB_PREF + SEP + ACCOUNT + SEP + account + SEP + SECURITIES, securities);
+        targets = up.getVectorSetting(RB_PREF + SEP + ACCOUNT + SEP + account + SEP + TARGETS, targets);
 
         int index = securities.indexOf(securityName);
-        return index == -1 || targets.get(index) == null ? 0.0 : Double.parseDouble((String)targets.get(index));
+        return index == -1 || targets.get(index) == null ? 0.0 : Double.parseDouble((String) targets.get(index));
     }
 
-
-    public final void processEvent(AWTEvent evt) {
-        if (evt.getID() == WindowEvent.WINDOW_CLOSING) {
-            extension.closeRebalanceWindow();
-            return;
-        }
-        super.processEvent(evt);
-    }
 
     void goAway() {
         setVisible(false);
