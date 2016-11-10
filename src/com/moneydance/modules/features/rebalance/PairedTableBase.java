@@ -48,7 +48,7 @@ class PairedTableBase extends JTable {
     PairedTableBase(TableModel tableModel) {
         super(tableModel);
         createDefaultEditors();
-        setRowSelectionAllowed(false);
+        //setRowSelectionAllowed(false);
         setColumnSelectionAllowed(false);
         setCellSelectionEnabled(true);
         setCellEditor(new DefaultCellEditor(new JTextField()));
@@ -63,7 +63,7 @@ class PairedTableBase extends JTable {
     @Override
     public Component prepareRenderer(TableCellRenderer renderer, int row, int column) {
         Component c = super.prepareRenderer(renderer, row, column);
-        if (row == 0 && getDataModel().getFooterVector().size() == 0) {
+        if ((row == 0) && getDataModel().getFooterVector().isEmpty()) {
             JComponent jc = (JComponent) c;
             jc.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, Color.BLACK));
         }
@@ -105,9 +105,9 @@ class PairedTableBase extends JTable {
 
     @Override
     public void columnMarginChanged(ChangeEvent event) {
-        final TableColumnModel eventModel = (DefaultTableColumnModel) event.getSource();
+        TableColumnModel eventModel = (DefaultTableColumnModel) event.getSource();
         final TableColumnModel thisModel = this.getColumnModel();
-        final int columnCount = eventModel.getColumnCount();
+        int columnCount = eventModel.getColumnCount();
 
         for (int i = 0; i < columnCount; i++) {
             thisModel.getColumn(i).setWidth(eventModel.getColumn(i).getWidth());
@@ -167,11 +167,7 @@ class PairedTableBase extends JTable {
             this.noDecimals = noDecimals;
             CurrencyTable ct = currency.getTable();
             String relativeToName = currency.getParameter(CurrencyType.TAG_RELATIVE_TO_CURR);
-            if (relativeToName != null) {
-                relativeTo = ct.getCurrencyByIDString(relativeToName);
-            } else {
-                relativeTo = ct.getBaseType();
-            }
+            relativeTo = (relativeToName == null) ? ct.getBaseType() : ct.getCurrencyByIDString(relativeToName);
             noDecimalFormatter = NumberFormat.getNumberInstance();
             noDecimalFormatter.setMinimumFractionDigits(0);
             noDecimalFormatter.setMaximumFractionDigits(0);
@@ -190,11 +186,11 @@ class PairedTableBase extends JTable {
                     if (noDecimals) {
                         // MD format functions can't print comma-separated values without a decimal point so
                         // we have to do it ourselves
-                        final double scaledValue = doubleValue * relativeTo.getUserRate();
+                        double scaledValue = doubleValue * relativeTo.getUserRate();
                         setText(relativeTo.getPrefix() + " " + noDecimalFormatter.format(scaledValue)
                                 + relativeTo.getSuffix());
                     } else {
-                        final long scaledValue = relativeTo.convertValue(relativeTo.getLongValue(doubleValue));
+                        long scaledValue = relativeTo.convertValue(relativeTo.getLongValue(doubleValue));
                         setText(relativeTo.formatFancy(scaledValue, decimalSeparator));
                     }
                 }

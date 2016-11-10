@@ -115,7 +115,7 @@ class PairedTable extends PairedTableBase {
     public Component prepareRenderer(TableCellRenderer renderer, int row, int column) {
         Component c = super.prepareRenderer(renderer, row, column);
         if (!isRowSelected(row)) {
-            c.setBackground(row % 2 == 0 ? getBackground() : lightLightGray);   // Banded rows
+            c.setBackground((row % 2) == 0 ? getBackground() : lightLightGray);   // Banded rows
         }
         return c;
     }

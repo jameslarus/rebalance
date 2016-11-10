@@ -38,7 +38,7 @@ import com.moneydance.apps.md.controller.FeatureModuleContext;
 import java.io.*;
 import java.awt.*;
 
-// Pluggable module used to rebalance an Account
+// Plugable module used to rebalance an Account
 
 public class Main extends FeatureModule {
     private ReBalanceWindow rebalanceWindow = null;
@@ -66,9 +66,10 @@ public class Main extends FeatureModule {
             if (in != null) {
                 ByteArrayOutputStream bout = new ByteArrayOutputStream(1000);
                 byte buf[] = new byte[256];
-                int n = 0;
-                while ((n = in.read(buf, 0, buf.length)) >= 0)
+                int n;
+                while ((n = in.read(buf, 0, buf.length)) >= 0) {
                     bout.write(buf, 0, n);
+                }
                 return Toolkit.getDefaultToolkit().createImage(bout.toByteArray());
             }
         } catch (Throwable e) {
@@ -79,11 +80,11 @@ public class Main extends FeatureModule {
      // Process an invocation of this module with the given URI
     public void invoke(String uri) {
         String command = uri;
-        String parameters = "";
+        //String parameters = "";
         int theIdx = uri.indexOf('?');
         if (theIdx >= 0) {
             command = uri.substring(0, theIdx);
-            parameters = uri.substring(theIdx + 1);
+            //parameters = uri.substring(theIdx + 1);
         } else {
             theIdx = uri.indexOf(':');
             if (theIdx >= 0) {

@@ -50,19 +50,19 @@ import java.awt.event.*;
 // Window used for the ReBalance interface
 
 class ReBalanceWindow extends JFrame implements ChangeListener, ItemListener, TableModelListener {
-    private Main extension;
-    private AccountBook book;
+    private final Main extension;
+    private final AccountBook book;
     private UserPreferences up = null;
 
-    private JComboBox<String> accountList;
-    private JCheckBox percentThresholdCheckbox;
-    private JSpinner percentThreshold;
+    private final JComboBox<String> accountList;
+    private final JCheckBox percentThresholdCheckbox;
+    private final JSpinner percentThreshold;
     private final double percentThresholdDefault = 1.0; // 1%
-    private JCheckBox valueThresholdCheckbox;
-    private JSpinner valueThreshold;
+    private final JCheckBox valueThresholdCheckbox;
+    private final JSpinner valueThreshold;
     private final int valueThresholdDefault = 1000;
-    private PairedTable rebalanceTable;
-    private Color LightGoldenRodYellow = new Color(0XFAFAD2);
+    private final PairedTable rebalanceTable;
+    private final Color LightGoldenRodYellow = new Color(0XFAFAD2);
 
     ReBalanceWindow(Main extension) {
         super("ReBalance Investment Account");
@@ -125,7 +125,7 @@ class ReBalanceWindow extends JFrame implements ChangeListener, ItemListener, Ta
         pane.add(amtPanel, c);
 
         // Set preferences before adding listeners to avoid running them before table is created
-        setThresholdPreferences();
+        restoreThresholdPreferences();
         percentThresholdCheckbox.addChangeListener(this);
         percentThreshold.addChangeListener(this);
         valueThresholdCheckbox.addChangeListener(this);
@@ -140,7 +140,7 @@ class ReBalanceWindow extends JFrame implements ChangeListener, ItemListener, Ta
                 if (column == TARGET_COL) {
                     c.setBackground(LightGoldenRodYellow);
                 }
-                if (column ==BUY_COL) {
+                if (column == BUY_COL) {
                     JComponent jc = (JComponent) c;
                     jc.setBorder(BorderFactory.createMatteBorder(0, 2, 0, 0, Color.BLACK));
                 }
@@ -152,6 +152,20 @@ class ReBalanceWindow extends JFrame implements ChangeListener, ItemListener, Ta
         c.gridy = 2;
         pane.add(new PairedTablePanel(rebalanceTable), c);
         tableModel.addTableModelListener(this);
+
+        // Row 4
+        JButton plusButton = new JButton("+");
+        plusButton.addActionListener(e -> createNewSecurity());
+        JButton minusButton = new JButton("-");
+        minusButton.addActionListener(e -> deleteSecurity());
+        JPanel panel = new JPanel();
+        panel.setLayout(new BoxLayout(panel, BoxLayout.X_AXIS));
+        panel.add(plusButton);
+        panel.add(minusButton);
+        c.gridx = 0;
+        c.gridwidth = 1;
+        c.gridy = 3;
+        pane.add(panel, c);
 
         setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
         enableEvents(WindowEvent.WINDOW_CLOSING);
@@ -199,7 +213,7 @@ class ReBalanceWindow extends JFrame implements ChangeListener, ItemListener, Ta
             @Override
             public boolean isCellEditable(int row, int column) {
                 return column == TARGET_COL;
-            };
+            }
         };
     }
 
@@ -210,11 +224,16 @@ class ReBalanceWindow extends JFrame implements ChangeListener, ItemListener, Ta
 
         // Securities
         for (Account a : account.getSubAccounts()) {
-            if (a.getAccountType() == Account.AccountType.SECURITY && !a.getCurrencyType().getHideInUI()) {
+            if (a.getAccountType() == Account.AccountType.SECURITY
+                    && !a.getCurrencyType().getHideInUI()
+                    && a.getCurrentBalance() > 0) {
                 if (a.getCurrencyType().getCurrencyType() == CurrencyType.Type.SECURITY) {
                     createEntry(data, a, a.getAccountName(), totalValue);
                 }
             }
+        }
+        for (Object s : getSecurityPreferences(accountName)) {
+            createEntryFromPreferences(data, (String) s);
         }
 
         // Cash
@@ -239,20 +258,37 @@ class ReBalanceWindow extends JFrame implements ChangeListener, ItemListener, Ta
     }
 
     private void createEntry(Vector<Vector<Object>> entries, Account security, String name, Double totalValue) {
-        Double balance = security.getBalance() / Math.pow(10.0, security.getCurrencyType().getDecimalPlaces());
+        Double shares = security.getBalance() / Math.pow(10.0, security.getCurrencyType().getDecimalPlaces());
         Double price = 1.0 / security.getCurrencyType().getUserRate();
+        createEntry(entries, name, restoreTargetPreference(security.getParentAccount().getAccountName(), name),
+                shares * price / totalValue, shares, price, shares * price);
+    }
 
+    private void createEntry(Vector<Vector<Object>> entries, String name, Double target, Double actual,
+                             Double shares, Double price, Double value) {
         Vector<Object> entry = new Vector<>(names.length);
         entry.add(name);
-        entry.add(getTargetPreference(security.getParentAccount().getAccountName(), name));
-        entry.add(balance * price / totalValue);
-        entry.add(balance);
+        entry.add(target);
+        entry.add(actual);
+        entry.add(shares);
         entry.add(price);
-        entry.add(balance * price);
+        entry.add(value);
         entry.add(0.0);   // calc at end
         entry.add(0.0);   // calc at end
         entry.add(0.0);   // calc at end
         entries.add(entry);
+    }
+
+    // User can add securities to accounts for calculation purposes. These securities appear only in
+    // Preferences, not in MD accounts.
+    private void createEntryFromPreferences(Vector<Vector<Object>> data, String securityName) {
+        for (int i = 0; i < data.size(); i++) {
+            if (securityName.equals(data.get(i).get(NAME_COL))) {
+                return; // Actual security in MD account
+            }
+        }
+        CurrencyType ct = book.getCurrencies().getCurrencyByName(securityName);
+        createEntry(data, securityName, 0.0, 0.0, 0.0, 1.0 / ct.getUserRate(), 0.0);
     }
 
     // This could be an integer-linear programming problem, but something simpler should work.
@@ -276,7 +312,7 @@ class ReBalanceWindow extends JFrame implements ChangeListener, ItemListener, Ta
             entry.set(SELL_COL, null);
             entry.set(BUY_COL, null);
             availableFunds += extractExcessValue(entry, totalValue);
-            totalTarget += entry.get(TARGET_COL) == null ? 0.0 : (Double) entry.get(TARGET_COL);
+            totalTarget += (entry.get(TARGET_COL) == null) ? 0.0 : (Double) entry.get(TARGET_COL);
         }
 
         // Spend funds on new shares
@@ -287,7 +323,7 @@ class ReBalanceWindow extends JFrame implements ChangeListener, ItemListener, Ta
         // Adjust cash
         cashEntry.set(SELL_COL, null);
         cashEntry.set(BUY_COL, null);
-        totalTarget += cashEntry.get(TARGET_COL) == null ? 0.0 : (Double) cashEntry.get(TARGET_COL);
+        totalTarget += (cashEntry.get(TARGET_COL) == null) ? 0.0 : (Double) cashEntry.get(TARGET_COL);
         if (!cash.equals(availableFunds)) {
             if (cash > availableFunds) {
                 cashEntry.set(SELL_COL, cash - availableFunds);
@@ -299,9 +335,6 @@ class ReBalanceWindow extends JFrame implements ChangeListener, ItemListener, Ta
         cashEntry.set(RESULT_COL, availableFunds / totalValue);
 
         footer.get(1).set(TARGET_COL, totalTarget);
-        if (rebalanceTable != null) { // Nothing to save when table is being created
-            saveAllPreferences();
-        }
     }
 
     // Find excess value of securities that exceed target by appropriate amount (either % or magnitude).
@@ -351,31 +384,73 @@ class ReBalanceWindow extends JFrame implements ChangeListener, ItemListener, Ta
     }
 
 
+    // Create / delete securities:
+    //
+    private void createNewSecurity() {
+        Object[] securities = getSecurities().toArray();
+        String securityName = (String) JOptionPane.showInputDialog(this, "Choose one", "Add security",
+                JOptionPane.INFORMATION_MESSAGE, null, securities, securities[0]);
+        CurrencyType ct = book.getCurrencies().getCurrencyByName(securityName);
+        createEntry(rebalanceTable.getDataVector(), securityName, 0.0, 0.0, 0.0, 1.0 / ct.getUserRate(), 0.0);
+        rebalanceTable.dataChanged();
+        saveTargetPreferences();
+    }
+
+    private Vector<String> getSecurities() {
+        Vector<String> securities = new Vector<>();
+        if (book != null) {
+            for (CurrencyType ct : book.getCurrencies()) {
+                if (ct.getCurrencyType() == CurrencyType.Type.SECURITY && !ct.getHideInUI()) {
+                    securities.add(ct.getName());
+                }
+            }
+        }
+        Collections.sort(securities);
+        return securities;
+    }
+
+    private void deleteSecurity() {
+        int row = rebalanceTable.getSelectedRow();
+        if (row != -1) {
+            int rowModelIndex = rebalanceTable.convertRowIndexToModel(row);
+            rebalanceTable.getDataVector().remove(rowModelIndex);
+            rebalanceTable.dataChanged();
+            saveTargetPreferences();
+        }
+    }
+
+
     // Listeners:
     //
     // Checkboxes and spinners
     public void stateChanged(ChangeEvent e) {
         rebalanceTable.dataChanged();
+        saveThresholdPreferences();
     }
 
     // Accounts dropdown
     public void itemStateChanged(ItemEvent e) {
         if (e.getStateChange() == ItemEvent.SELECTED) {
             rebalanceTable.setModel(createRebalanceTableModel((String) accountList.getSelectedItem()));
+            rebalanceTable.getDataModel().addTableModelListener(this);
             pack();
         }
     }
 
     // The table
+    @Override
     public void tableChanged(TableModelEvent e) {
         rebalanceTable.getDataModel().removeTableModelListener(this); // Avoid recursion
-        rebalanceTable.dataChanged(); // Force change event on footer table as well (in case enterred directly)
+        rebalanceTable.dataChanged(); // Force change event on footer table as well (in case entered directly)
         rebalance(rebalanceTable.getDataVector(), rebalanceTable.getFooterDataVector());
+        saveTargetPreferences();
         rebalanceTable.getDataModel().addTableModelListener(this);
     }
 
-    public final void processEvent(AWTEvent evt) {
+    public void processEvent(AWTEvent evt) {
         if (evt.getID() == WindowEvent.WINDOW_CLOSING) {
+            saveThresholdPreferences();
+            saveTargetPreferences();
             extension.closeRebalanceWindow();
             return;
         }
@@ -395,12 +470,24 @@ class ReBalanceWindow extends JFrame implements ChangeListener, ItemListener, Ta
     private static final String SECURITIES = "Securities";
     private static final String TARGETS = "Targets";
 
-    private void saveAllPreferences() {
+    private void saveThresholdPreferences() {
         up.setSetting(RB_PREF + SEP + PT_CHECKBOX, percentThresholdCheckbox.isSelected());
         up.setSetting(RB_PREF + SEP + PT_THRESHOLD, percentThreshold.getValue().toString());
         up.setSetting(RB_PREF + SEP + VT_CHECKBOX, valueThresholdCheckbox.isSelected());
         up.setSetting(RB_PREF + SEP + VT_THRESHOLD, valueThreshold.getValue().toString());
+    }
 
+    private void restoreThresholdPreferences() {
+        percentThresholdCheckbox.setSelected(up.getBoolSetting(RB_PREF + SEP + PT_CHECKBOX, false));
+        String defaultThreshold = Double.toString(percentThresholdDefault);
+        percentThreshold.setValue(Double.parseDouble(up.getSetting(RB_PREF + SEP + PT_THRESHOLD, defaultThreshold)));
+
+        valueThresholdCheckbox.setSelected(up.getBoolSetting(RB_PREF + SEP + VT_CHECKBOX, false));
+        defaultThreshold = Integer.toString(valueThresholdDefault);
+        valueThreshold.setValue(Integer.parseInt(up.getSetting(RB_PREF + SEP + VT_THRESHOLD, defaultThreshold)));
+    }
+
+    private void saveTargetPreferences() {
         String account = (String) accountList.getSelectedItem();
         StreamVector securities = new StreamVector();
         StreamVector targets = new StreamVector();
@@ -413,24 +500,20 @@ class ReBalanceWindow extends JFrame implements ChangeListener, ItemListener, Ta
         up.setSetting(RB_PREF + SEP + ACCOUNT + SEP + account + SEP + TARGETS, targets);
     }
 
-    private void setThresholdPreferences() {
-        percentThresholdCheckbox.setSelected(up.getBoolSetting(RB_PREF + SEP + PT_CHECKBOX, false));
-        String defaultThreshold = Double.toString(percentThresholdDefault);
-        percentThreshold.setValue(Double.parseDouble(up.getSetting(RB_PREF + SEP + PT_THRESHOLD, defaultThreshold)));
-
-        valueThresholdCheckbox.setSelected(up.getBoolSetting(RB_PREF + SEP + VT_CHECKBOX, false));
-        defaultThreshold = Integer.toString(valueThresholdDefault);
-        valueThreshold.setValue(Integer.parseInt(up.getSetting(RB_PREF + SEP + VT_THRESHOLD, defaultThreshold)));
-    }
-
-    private Double getTargetPreference(String account, String securityName) {
+    private Double restoreTargetPreference(String accountName, String securityName) {
         StreamVector securities = new StreamVector();
         StreamVector targets = new StreamVector();
-        securities = up.getVectorSetting(RB_PREF + SEP + ACCOUNT + SEP + account + SEP + SECURITIES, securities);
-        targets = up.getVectorSetting(RB_PREF + SEP + ACCOUNT + SEP + account + SEP + TARGETS, targets);
+        securities = up.getVectorSetting(RB_PREF + SEP + ACCOUNT + SEP + accountName + SEP + SECURITIES, securities);
+        targets = up.getVectorSetting(RB_PREF + SEP + ACCOUNT + SEP + accountName + SEP + TARGETS, targets);
 
         int index = securities.indexOf(securityName);
-        return index == -1 || targets.get(index) == null ? 0.0 : Double.parseDouble((String) targets.get(index));
+        return index == -1 || (targets.get(index) == null) ? 0.0 : Double.parseDouble((String) targets.get(index));
+    }
+
+    private StreamVector getSecurityPreferences(String accountName) {
+        StreamVector securities = new StreamVector();
+        return up.getVectorSetting(RB_PREF + SEP + ACCOUNT + SEP + accountName + SEP + SECURITIES, securities);
+
     }
 
 
