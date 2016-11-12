@@ -41,27 +41,29 @@ import java.awt.*;
 // Plugable module used to rebalance an Account
 
 public class Main extends FeatureModule {
-    private ReBalanceWindow rebalanceWindow = null;
+    private ReBalanceWindow rebalanceWindow;
 
+    @Override
     public void init() {
         // The first thing we will do is register this module to be invoked
         // via the application toolbar
-        FeatureModuleContext context = getContext();
+        FeatureModuleContext context = this.getContext();
         try {
-            context.registerFeature(this, "rebalance", getIcon("accountlist"), getName());
+            context.registerFeature(this, "rebalance", this.getIcon("accountlist"), this.getName());
         } catch (Exception e) {
             e.printStackTrace(System.err);
         }
     }
 
+    @Override
     public void cleanup() {
-        closeRebalanceWindow();
+        this.closeRebalanceWindow();
     }
 
     private Image getIcon(String action) {
         try {
-            ClassLoader cl = getClass().getClassLoader();
-            java.io.InputStream in =
+            ClassLoader cl = this.getClass().getClassLoader();
+            InputStream in =
                     cl.getResourceAsStream("/com/moneydance/modules/features/rebalance/icon.gif");
             if (in != null) {
                 ByteArrayOutputStream bout = new ByteArrayOutputStream(1000);
@@ -78,6 +80,7 @@ public class Main extends FeatureModule {
     }
 
      // Process an invocation of this module with the given URI
+    @Override
     public void invoke(String uri) {
         String command = uri;
         //String parameters = "";
@@ -93,33 +96,34 @@ public class Main extends FeatureModule {
         }
 
         if (command.equals("rebalance")) {
-            rebalance();
+            this.rebalance();
         }
     }
 
+    @Override
     public String getName() {
         return "ReBalance";
     }
 
     private synchronized void rebalance() {
-        if (rebalanceWindow == null) {
-            rebalanceWindow = new ReBalanceWindow(this);
-            rebalanceWindow.setVisible(true);
+        if (this.rebalanceWindow == null) {
+            this.rebalanceWindow = new ReBalanceWindow(this);
+            this.rebalanceWindow.setVisible(true);
         } else {
-            rebalanceWindow.setVisible(true);
-            rebalanceWindow.toFront();
-            rebalanceWindow.requestFocus();
+            this.rebalanceWindow.setVisible(true);
+            this.rebalanceWindow.toFront();
+            this.rebalanceWindow.requestFocus();
         }
     }
 
     FeatureModuleContext getUnprotectedContext() {
-        return getContext();
+        return this.getContext();
     }
 
     synchronized void closeRebalanceWindow() {
-        if (rebalanceWindow != null) {
-            rebalanceWindow.goAway();
-            rebalanceWindow = null;
+        if (this.rebalanceWindow != null) {
+            this.rebalanceWindow.goAway();
+            this.rebalanceWindow = null;
         }
     }
 }

@@ -36,12 +36,11 @@ import java.awt.*;
 
 class PairedTablePanel extends JPanel {
     PairedTablePanel(PairedTable table) {
-        super();
 
-        setLayout(new BoxLayout(this, BoxLayout.PAGE_AXIS));
-        add(table.getTableHeader());
-        add(table);
-        add(table.getFooterTable());
-        setBorder(BorderFactory.createMatteBorder(1, 1, 1, 1, Color.GRAY));
+        this.setLayout(new BoxLayout(this, BoxLayout.PAGE_AXIS));
+        this.add(table.getTableHeader());
+        this.add(table);
+        this.add(table.getFooterTable());
+        this.setBorder(BorderFactory.createMatteBorder(1, 1, 1, 1, Color.GRAY));
     }
 }

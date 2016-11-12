@@ -50,28 +50,29 @@ class PairedTableModel extends DefaultTableModel {
     }
 
     Vector<String> getColumnNames() {
-        return columnIdentifiers;
+        return this.columnIdentifiers;
     }
 
     Vector<String> getColumnTypes() {
-        return columnTypes;
+        return this.columnTypes;
     }
 
     CurrencyType getCurrency() {
-        return currency;
+        return this.currency;
     }
 
     Vector<Vector<Object>> getFooterVector() {
-        return footer;
+        return this.footer;
     }
 
+    @Override
     public void setValueAt(Object value, int row, int col) {
-        if (columnTypes.get(col).equals("String")) {
-            ((Vector<Object>) dataVector.get(row)).set(col, value);
+        if (this.columnTypes.get(col).equals("String")) {
+            ((Vector<Object>) this.dataVector.get(row)).set(col, value);
         } else {
-            ((Vector<Object>) dataVector.get(row)).set(col, Double.parseDouble((String) value));
+            ((Vector<Object>) this.dataVector.get(row)).set(col, Double.parseDouble((String) value));
         }
-        fireTableCellUpdated(row, col);
+        this.fireTableCellUpdated(row, col);
     }
 }
 
