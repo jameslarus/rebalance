@@ -1,4 +1,3 @@
-package com.moneydance.modules.features.rebalance;// com.moneydance.modules.features.rebalance.PairedTableModel.java
 //
 // Copyright (c) 2016, James Larus
 //  All rights reserved.
@@ -30,6 +29,8 @@ package com.moneydance.modules.features.rebalance;// com.moneydance.modules.feat
 //  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 //  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+package com.moneydance.modules.features.rebalance;
+
 import com.infinitekind.moneydance.model.CurrencyType;
 
 import javax.swing.table.DefaultTableModel;
@@ -50,29 +51,29 @@ class PairedTableModel extends DefaultTableModel {
     }
 
     Vector<String> getColumnNames() {
-        return this.columnIdentifiers;
+        return columnIdentifiers;
     }
 
     Vector<String> getColumnTypes() {
-        return this.columnTypes;
+        return columnTypes;
     }
 
     CurrencyType getCurrency() {
-        return this.currency;
+        return currency;
     }
 
     Vector<Vector<Object>> getFooterVector() {
-        return this.footer;
+        return footer;
     }
 
     @Override
     public void setValueAt(Object value, int row, int col) {
-        if (this.columnTypes.get(col).equals("String")) {
-            ((Vector<Object>) this.dataVector.get(row)).set(col, value);
+        if (columnTypes.get(col).equals("String")) {
+            ((Vector<Object>) dataVector.get(row)).set(col, value);
         } else {
-            ((Vector<Object>) this.dataVector.get(row)).set(col, Double.parseDouble((String) value));
+            ((Vector<Object>) dataVector.get(row)).set(col, Double.parseDouble((String) value));
         }
-        this.fireTableCellUpdated(row, col);
+        fireTableCellUpdated(row, col);
     }
 }
 

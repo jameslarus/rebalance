@@ -34,13 +34,13 @@ package com.moneydance.modules.features.rebalance;
 import javax.swing.*;
 import java.awt.*;
 
+// The usual container for a table (JScrollPane) does not support a footer. This simple component
+// encapsulates the header, body and, footer so they display properly and be resized together.
 class PairedTablePanel extends JPanel {
     PairedTablePanel(PairedTable table) {
-
         this.setLayout(new BoxLayout(this, BoxLayout.PAGE_AXIS));
         this.add(table.getTableHeader());
         this.add(table);
         this.add(table.getFooterTable());
-        this.setBorder(BorderFactory.createMatteBorder(1, 1, 1, 1, Color.GRAY));
     }
 }

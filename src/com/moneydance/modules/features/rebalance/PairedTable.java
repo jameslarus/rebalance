@@ -1,4 +1,3 @@
-// RBTable.java
 //
 // Copyright (c) 2016, James Larus
 //  All rights reserved.
@@ -47,43 +46,42 @@ class PairedTable extends PairedTableBase {
     PairedTable(PairedTableModel tableModel) {
         super(tableModel);
 
-        this.fixColumnRenderer();
-        this.setAutoCreateRowSorter(true);
-        this.getRowSorter().toggleSortOrder(0); // Default: sort by symbol
+        fixColumnRenderer();
+        setAutoCreateRowSorter(true);
+        getRowSorter().toggleSortOrder(0); // Default: sort by symbol
 
         // Create footer table
-        this.footerTable = new PairedTableBase(new PairedTableModel(tableModel.getFooterVector(), new Vector<>(),
+        footerTable = new PairedTableBase(new PairedTableModel(tableModel.getFooterVector(), new Vector<>(),
                 tableModel.getColumnNames(), tableModel.getColumnTypes(), tableModel.getCurrency()));
 
         // Link body and footer columns
         // http://stackoverflow.com/questions/2666758/issue-with-resizing-columns-in-a-double-jtable
-        this.footerTable.setColumnModel(getColumnModel());
-        getColumnModel().addColumnModelListener(this.footerTable);
-        this.footerTable.getColumnModel().addColumnModelListener(this);
-        this.footerTable.getModel().addTableModelListener(this);
+        footerTable.setColumnModel(getColumnModel());
+        getColumnModel().addColumnModelListener(footerTable);
+        footerTable.getColumnModel().addColumnModelListener(this);
+        footerTable.getModel().addTableModelListener(this);
 
-        this.adjustColumnPreferredWidths();
+        adjustColumnPreferredWidths();
     }
 
-    // Changing table data model changes headers, which erases their renderers.
+    // Changing the table's data model changes its headers, which erases their renderers. Replace them.
     private void fixColumnRenderer() {
-        TableColumnModel cm = this.getColumnModel();
+        TableColumnModel cm = getColumnModel();
         for (int i = 0; i < cm.getColumnCount(); i++) {
             TableColumn col = cm.getColumn(i);
             col.setHeaderRenderer(new HeaderRenderer());
         }
     }
 
-    // Set the preferred widths for the column large enough for header, data, and footer.
+    // Set the preferred widths for a column large enough to contain cells from the header, data, and footer.
     private void adjustColumnPreferredWidths() {
-        for (int col = 0; col < this.getColumnCount(); col++) {
-            TableColumnModel columnModel = this.getColumnModel();
+        for (int col = 0; col < getColumnCount(); col++) {
+            TableColumnModel columnModel = getColumnModel();
             TableColumn column = columnModel.getColumn(col);
             int maxWidth = column.getPreferredWidth();
-            maxWidth = Math.max(maxWidth, this.findColumnPreferredWidth(this, col));
-            maxWidth = Math.max(maxWidth, this.findColumnPreferredWidth(this.getFooterTable(), col));
-            maxWidth = Math.max(maxWidth, this.findHeaderPreferredWidth(col));
-
+            maxWidth = Math.max(maxWidth, findColumnPreferredWidth(this, col));
+            maxWidth = Math.max(maxWidth, findColumnPreferredWidth(footerTable, col));
+            maxWidth = Math.max(maxWidth, findHeaderPreferredWidth(col));
             column.setPreferredWidth(maxWidth);
         }
     }
@@ -94,63 +92,62 @@ class PairedTable extends PairedTableBase {
             TableCellRenderer rend = table.getCellRenderer(row, col);
             Object value = table.getValueAt(row, col);
             Component comp = rend.getTableCellRendererComponent(table, value, false, false, row, col);
-            maxWidth = Math.max(maxWidth, comp.getPreferredSize().width + this.cellPadding);
+            maxWidth = Math.max(maxWidth, comp.getPreferredSize().width + cellPadding);
         }
         return maxWidth;
     }
 
     private int findHeaderPreferredWidth(int col) {
-        TableColumnModel columnModel = this.getColumnModel();
+        TableColumnModel columnModel = getColumnModel();
         TableColumn column = columnModel.getColumn(col);
         TableCellRenderer headerRenderer = column.getHeaderRenderer();
         if (headerRenderer == null) {
-            headerRenderer = this.getTableHeader().getDefaultRenderer();
+            headerRenderer = getTableHeader().getDefaultRenderer();
         }
         Object headerValue = column.getHeaderValue();
         Component headerComp = headerRenderer.getTableCellRendererComponent(this, headerValue, false, false, -1, col);
-        return headerComp.getPreferredSize().width + this.cellPadding;
+        return headerComp.getPreferredSize().width + cellPadding;
     }
 
     @Override
     public Component prepareRenderer(TableCellRenderer renderer, int row, int column) {
         Component c = super.prepareRenderer(renderer, row, column);
-        if (!this.isRowSelected(row)) {
-            c.setBackground(row % 2 == 0 ? this.getBackground() : this.lightLightGray);   // Banded rows
+        if (!isRowSelected(row)) {
+            c.setBackground(row % 2 == 0 ? getBackground() : lightLightGray);   // Banded rows
         }
         return c;
     }
 
     Vector<Vector<Object>> getDataVector() {
-        return this.getDataModel().getDataVector();
+        return getDataModel().getDataVector();
     }
 
     Vector<Vector<Object>> getFooterDataVector() {
-        return this.footerTable.getDataModel().getDataVector();
+        return footerTable.getDataModel().getDataVector();
     }
 
     JTable getFooterTable() {
-        return this.footerTable;
+        return footerTable;
     }
 
     void dataChanged() {
-        this.getDataModel().newDataAvailable(new TableModelEvent(this.getDataModel()));
-        this.footerTable.getDataModel().newDataAvailable(new TableModelEvent(this.footerTable.getDataModel()));
+        getDataModel().newDataAvailable(new TableModelEvent(getDataModel()));
+        footerTable.getDataModel().newDataAvailable(new TableModelEvent(footerTable.getDataModel()));
     }
 
     public void setModel(PairedTableModel model) {
         super.setModel(model);
-
-        this.footerTable.setModel(new PairedTableModel(model.getFooterVector(), new Vector<>(),
+        footerTable.setModel(new PairedTableModel(model.getFooterVector(), new Vector<>(),
                 model.getColumnNames(), model.getColumnTypes(), model.getCurrency()));
-        this.adjustColumnPreferredWidths();
+        adjustColumnPreferredWidths();
     }
 
     private class HeaderRenderer extends DefaultTableCellRenderer {
         HeaderRenderer() {
-            this.setForeground(Color.BLACK);
-            this.setFont(this.getFont().deriveFont(Font.BOLD));
-            this.setBackground(Color.lightGray);
-            this.setHorizontalAlignment(JLabel.CENTER);
+            setForeground(Color.BLACK);
+            setFont(getFont().deriveFont(Font.BOLD));
+            setBackground(Color.lightGray);
+            setHorizontalAlignment(JLabel.CENTER);
         }
     }
 }

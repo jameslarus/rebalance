@@ -42,39 +42,37 @@ import java.awt.*;
 import java.text.NumberFormat;
 
 
-// Basic functional for paired tables.
+// Base functionality for paired tables.
 
 class PairedTableBase extends JTable {
     PairedTableBase(TableModel tableModel) {
         super(tableModel);
-        this.createDefaultEditors();
-        //setRowSelectionAllowed(false);
-        this.setColumnSelectionAllowed(false);
-        this.setCellSelectionEnabled(true);
-        this.setCellEditor(new DefaultCellEditor(new JTextField()));
-        this.putClientProperty("terminateEditOnFocusLost", Boolean.TRUE);
+        createDefaultEditors();
+        setColumnSelectionAllowed(false);
+        setCellSelectionEnabled(true);
+        setCellEditor(new DefaultCellEditor(new JTextField()));
+        putClientProperty("terminateEditOnFocusLost", Boolean.TRUE);
     }
 
     PairedTableModel getDataModel() {
-        return (PairedTableModel) this.dataModel;
+        return (PairedTableModel) dataModel;
     }
 
     // Draw a line above the footer to visually separate it.
     @Override
     public Component prepareRenderer(TableCellRenderer renderer, int row, int column) {
         Component c = super.prepareRenderer(renderer, row, column);
-        if (row == 0 && this.getDataModel().getFooterVector().isEmpty()) {
+        if (row == 0 && getDataModel().getFooterVector().isEmpty()) {
             JComponent jc = (JComponent) c;
             jc.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, Color.BLACK));
         }
         return c;
     }
 
-    // Rendering depends on row (i.e. security's currency) as well as column
     @Override
     public TableCellRenderer getCellRenderer(int row, int column) {
         DefaultTableCellRenderer renderer;
-        String columnType = this.getDataModel().getColumnTypes().get(column);
+        String columnType = getDataModel().getColumnTypes().get(column);
         switch (columnType) {
             case "Text":
                 renderer = new DefaultTableCellRenderer();
@@ -83,7 +81,7 @@ class PairedTableBase extends JTable {
 
             case "Currency0":
             case "Currency2":
-                renderer = new CurrencyRenderer(this.getDataModel().getCurrency(), columnType.equals("Currency0"));
+                renderer = new CurrencyRenderer(getDataModel().getCurrency(), columnType.equals("Currency0"));
                 renderer.setHorizontalAlignment(JLabel.RIGHT);
                 break;
 
@@ -108,17 +106,17 @@ class PairedTableBase extends JTable {
         TableColumnModel eventModel = (DefaultTableColumnModel) event.getSource();
         TableColumnModel thisModel = getColumnModel();
         int columnCount = eventModel.getColumnCount();
-
         for (int i = 0; i < columnCount; i++) {
             thisModel.getColumn(i).setWidth(eventModel.getColumn(i).getWidth());
         }
-        this.repaint();
+        repaint();
     }
 
-    // Base class for rendering a table cell. NaN or null leaves an empty cell.
+    // Base class for rendering a table cell containing a number of some type. NaN or null produces a blank cell.
     // Negative values are red.
-    private class PairedRenderer extends DefaultTableCellRenderer {
+    private class NumberCellRenderer extends DefaultTableCellRenderer {
         Double doubleValue;
+        final String defaultValue = "?";
 
         boolean isCloseToZero(Double value) {
             return Math.abs(value) < 0.01;
@@ -127,36 +125,35 @@ class PairedTableBase extends JTable {
         @Override
         public void setValue(Object value) {
             try {
-                this.setText("?");
+                setText(defaultValue);
                 if (value == null) {
-                    this.setText("");
+                    setText("");
                     return;
                 }
                 if (value instanceof String) {
                     value = Double.valueOf((String) value);
                 }
-                this.doubleValue = (Double) value;
-                if (Double.isNaN(this.doubleValue)) {
-                    this.setText("");
+                doubleValue = (Double) value;
+                if (Double.isNaN(doubleValue)) {
+                    setText("");
                 } else {
-                    if (this.isCloseToZero(this.doubleValue)) {
-                        this.doubleValue = 0.0;
+                    if (isCloseToZero(doubleValue)) {
+                        doubleValue = 0.0;
                     }
-                    // setText here
-                    if (this.doubleValue < 0.0) {
-                        this.setForeground(Color.RED);
+                    if (doubleValue < 0.0) {
+                        setForeground(Color.RED);
                     } else {
-                        this.setForeground(Color.BLACK);
+                        setForeground(Color.BLACK);
                     }
                 }
             } catch (Exception e) {
-                this.setText("exp");
+                setText("exp");
             }
         }
     }
 
     // Render a currency with given number of fractional digits.
-    private class CurrencyRenderer extends PairedTableBase.PairedRenderer {
+    private class CurrencyRenderer extends NumberCellRenderer {
         private final boolean noDecimals;
         private final CurrencyType relativeTo;
         private final char decimalSeparator = '.'; // ToDo: Set from preferences (how?)
@@ -166,10 +163,10 @@ class PairedTableBase extends JTable {
             this.noDecimals = noDecimals;
             CurrencyTable ct = currency.getTable();
             String relativeToName = currency.getParameter(CurrencyType.TAG_RELATIVE_TO_CURR);
-            this.relativeTo = relativeToName == null ? ct.getBaseType() : ct.getCurrencyByIDString(relativeToName);
-            this.noDecimalFormatter = NumberFormat.getNumberInstance();
-            this.noDecimalFormatter.setMinimumFractionDigits(0);
-            this.noDecimalFormatter.setMaximumFractionDigits(0);
+            relativeTo = relativeToName == null ? ct.getBaseType() : ct.getCurrencyByIDString(relativeToName);
+            noDecimalFormatter = NumberFormat.getNumberInstance();
+            noDecimalFormatter.setMinimumFractionDigits(0);
+            noDecimalFormatter.setMaximumFractionDigits(0);
         }
 
         @Override
@@ -181,26 +178,26 @@ class PairedTableBase extends JTable {
         public void setValue(Object value) {
             try {
                 super.setValue(value);
-                if (this.getText().equals("?")) {
-                    if (this.noDecimals) {
+                if (getText().equals(defaultValue)) {
+                    if (noDecimals) {
                         // MD format functions can't print comma-separated values without a decimal point so
                         // we have to do it ourselves
-                        double scaledValue = this.doubleValue * this.relativeTo.getUserRate();
-                        this.setText(this.relativeTo.getPrefix() + " " + this.noDecimalFormatter.format(scaledValue)
-                                + this.relativeTo.getSuffix());
+                        double scaledValue = doubleValue * relativeTo.getUserRate();
+                        setText(relativeTo.getPrefix() + " " + noDecimalFormatter.format(scaledValue)
+                                + relativeTo.getSuffix());
                     } else {
-                        long scaledValue = this.relativeTo.convertValue(this.relativeTo.getLongValue(this.doubleValue));
-                        this.setText(this.relativeTo.formatFancy(scaledValue, this.decimalSeparator));
+                        long scaledValue = relativeTo.convertValue(relativeTo.getLongValue(doubleValue));
+                        setText(relativeTo.formatFancy(scaledValue, decimalSeparator));
                     }
                 }
             } catch (Exception e) {
-                this.setText("exp");
+                setText("exp");
             }
         }
     }
 
-    // Render a percentage with 2 digits after the decimal point. Conventions as CurrencyRenderer
-    private class PercentRenderer extends PairedTableBase.PairedRenderer {
+    // Render a percentage with 2 digits after the decimal point.
+    private class PercentRenderer extends NumberCellRenderer {
         private final char decimalSeparator = '.'; // ToDo: Set from preferences (how?)
 
         PercentRenderer() {
@@ -215,18 +212,18 @@ class PairedTableBase extends JTable {
         public void setValue(Object value) {
             try {
                 super.setValue(value);
-                if (this.getText().equals("?")) {
-                    this.setText(StringUtils.formatPercentage(this.doubleValue, this.decimalSeparator) + "%");
+                if (getText().equals(defaultValue)) {
+                    setText(StringUtils.formatPercentage(doubleValue, decimalSeparator) + "%");
 
                 }
             } catch (Exception e) {
-                this.setText("exp");
+                setText("exp");
             }
         }
     }
 
-    // Render an integer. Conventions as CurrencyRenderer
-    private class IntegerRenderer extends PairedTableBase.PairedRenderer {
+    // Render an integer.
+    private class IntegerRenderer extends NumberCellRenderer {
         IntegerRenderer() {
         }
 
@@ -234,11 +231,11 @@ class PairedTableBase extends JTable {
         public void setValue(Object value) {
             try {
                 super.setValue(value);
-                if (this.getText().equals("?")) {
-                    this.setText(Long.toString(Math.round(this.doubleValue)));
+                if (getText().equals(defaultValue)) {
+                    setText(Long.toString(Math.round(doubleValue)));
                 }
             } catch (Exception e) {
-                this.setText("exp");
+                setText("exp");
             }
         }
     }
