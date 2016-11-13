@@ -1,0 +1,3 @@
+ReBalance is a Moneydance extension that aids in rebalancing an investement account, so you can maintain a fixed asset allocation in the account.
+
+To use ReBalance, just start the extension and select the account. Then enter the desired allocation in the highlighted Target column and select either a percentage or absolute tolerance for deviance from the allocation. ReBalance will tell you how many shares of each security that is out of tolerance to buy and sell to rebalance the account.
