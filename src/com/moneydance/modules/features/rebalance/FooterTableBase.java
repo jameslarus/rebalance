@@ -44,8 +44,8 @@ import java.text.NumberFormat;
 
 // Base functionality for paired tables.
 
-class PairedTableBase extends JTable {
-    PairedTableBase(TableModel tableModel) {
+class FooterTableBase extends JTable {
+    FooterTableBase(TableModel tableModel) {
         super(tableModel);
         createDefaultEditors();
         setColumnSelectionAllowed(false);
@@ -54,8 +54,8 @@ class PairedTableBase extends JTable {
         putClientProperty("terminateEditOnFocusLost", Boolean.TRUE);
     }
 
-    PairedTableModel getDataModel() {
-        return (PairedTableModel) dataModel;
+    FooterTableModel getDataModel() {
+        return (FooterTableModel) dataModel;
     }
 
     // Draw a line above the footer to visually separate it.

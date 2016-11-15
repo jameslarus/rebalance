@@ -61,7 +61,7 @@ class ReBalanceWindow extends JFrame implements ChangeListener, ItemListener, Ta
     private final JCheckBox valueThresholdCheckbox;
     private final JSpinner valueThreshold;
     private final int valueThresholdDefault = 1000;
-    private final PairedTable rebalanceTable;
+    private final FooterTable rebalanceTable;
     private final Color LightGoldenRodYellow = new Color(0XFAFAD2);
 
     ReBalanceWindow(Main extension) {
@@ -132,8 +132,8 @@ class ReBalanceWindow extends JFrame implements ChangeListener, ItemListener, Ta
         valueThreshold.addChangeListener(this);
 
         // Row 3
-        PairedTableModel tableModel = createRebalanceTableModel((String) accountList.getSelectedItem());
-        rebalanceTable = new PairedTable(tableModel) {
+        FooterTableModel tableModel = createRebalanceTableModel((String) accountList.getSelectedItem());
+        rebalanceTable = new FooterTable(tableModel) {
             @Override
             public Component prepareRenderer(TableCellRenderer renderer, int row, int column) {
                 Component c = super.prepareRenderer(renderer, row, column);
@@ -150,7 +150,7 @@ class ReBalanceWindow extends JFrame implements ChangeListener, ItemListener, Ta
         c.gridx = 0;
         c.gridwidth = 3;
         c.gridy = 2;
-        PairedTablePanel tablePanel = new PairedTablePanel(rebalanceTable);
+        FooterTablePane tablePanel = new FooterTablePane(rebalanceTable);
         tablePanel.setBorder(BorderFactory.createMatteBorder(1, 1, 1, 1, Color.GRAY));
         pane.add(tablePanel, c);
         tableModel.addTableModelListener(this);
@@ -213,13 +213,13 @@ class ReBalanceWindow extends JFrame implements ChangeListener, ItemListener, Ta
             = {"Text", "Text", "Percent", "Percent", "Integer", "Currency2", "Currency2", "Integer", "Integer", "Percent"};
     private final Vector<String> columnTypes = new Vector<>(Arrays.asList(types));
 
-    private PairedTableModel createRebalanceTableModel(String accountName) {
+    private FooterTableModel createRebalanceTableModel(String accountName) {
         Account account = book.getRootAccount().getAccountByName(accountName);
         Vector<Vector<Object>> data = new Vector<>();
         Vector<Vector<Object>> footer = new Vector<>();
 
         fillRebalanceTable(accountName, data, footer);
-        return new PairedTableModel(data, footer, columnNames, columnTypes, account.getCurrencyType()) {
+        return new FooterTableModel(data, footer, columnNames, columnTypes, account.getCurrencyType()) {
             @Override
             public boolean isCellEditable(int row, int column) {
                 return column == TARGET_COL;

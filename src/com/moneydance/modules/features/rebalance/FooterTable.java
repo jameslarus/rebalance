@@ -38,12 +38,12 @@ import java.awt.*;
 import java.util.Vector;
 
 
-class PairedTable extends PairedTableBase {
-    private final PairedTableBase footerTable;
+class FooterTable extends FooterTableBase {
+    private final FooterTableBase footerTable;
     private final Color lightLightGray = new Color(0xDCDCDC);
     private final int cellPadding = 20; // Extra space so cells aren't so tight
 
-    PairedTable(PairedTableModel tableModel) {
+    FooterTable(FooterTableModel tableModel) {
         super(tableModel);
 
         fixColumnRenderer();
@@ -51,7 +51,7 @@ class PairedTable extends PairedTableBase {
         getRowSorter().toggleSortOrder(0); // Default: sort by symbol
 
         // Create footer table
-        footerTable = new PairedTableBase(new PairedTableModel(tableModel.getFooterVector(), new Vector<>(),
+        footerTable = new FooterTableBase(new FooterTableModel(tableModel.getFooterVector(), new Vector<>(),
                 tableModel.getColumnNames(), tableModel.getColumnTypes(), tableModel.getCurrency()));
 
         // Link body and footer columns
@@ -135,9 +135,9 @@ class PairedTable extends PairedTableBase {
         footerTable.getDataModel().newDataAvailable(new TableModelEvent(footerTable.getDataModel()));
     }
 
-    public void setModel(PairedTableModel model) {
+    public void setModel(FooterTableModel model) {
         super.setModel(model);
-        footerTable.setModel(new PairedTableModel(model.getFooterVector(), new Vector<>(),
+        footerTable.setModel(new FooterTableModel(model.getFooterVector(), new Vector<>(),
                 model.getColumnNames(), model.getColumnTypes(), model.getCurrency()));
         adjustColumnPreferredWidths();
     }

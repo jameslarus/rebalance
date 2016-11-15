@@ -37,12 +37,12 @@ import javax.swing.table.DefaultTableModel;
 import java.util.Vector;
 
 
-class PairedTableModel extends DefaultTableModel {
+class FooterTableModel extends DefaultTableModel {
     private final Vector<String> columnTypes;
     private final CurrencyType currency;
     private final Vector<Vector<Object>> footer;
 
-    PairedTableModel(Vector<Vector<Object>> data, Vector<Vector<Object>> footer, Vector<String> columnNames,
+    FooterTableModel(Vector<Vector<Object>> data, Vector<Vector<Object>> footer, Vector<String> columnNames,
                      Vector<String> columnTypes, CurrencyType currency) {
         super(data, columnNames);
         this.columnTypes = columnTypes;
