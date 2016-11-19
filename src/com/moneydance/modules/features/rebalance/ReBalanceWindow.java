@@ -367,10 +367,9 @@ class ReBalanceWindow extends JFrame implements ChangeListener, ItemListener, Ta
                 Double oldShares = (Double) entry.get(SHARE_COL) - sharesToSell;
                 entry.set(RESULT_COL, oldShares * price / totalValue);
                 return sharesToSell * price;
-            } else {
-                entry.set(RESULT_COL, entry.get(ACTUAL_COL));
             }
         }
+        entry.set(RESULT_COL, entry.get(ACTUAL_COL));
         return 0.0;
     }
 
@@ -386,10 +385,9 @@ class ReBalanceWindow extends JFrame implements ChangeListener, ItemListener, Ta
                 Double newShares = (Double) entry.get(SHARE_COL) + sharesToBuy;
                 entry.set(RESULT_COL, newShares * price / totalValue);
                 return sharesToBuy * price;
-            } else {
-                entry.set(RESULT_COL, entry.get(ACTUAL_COL));
             }
         }
+        entry.set(RESULT_COL, entry.get(ACTUAL_COL));
         return 0.0;
     }
 
