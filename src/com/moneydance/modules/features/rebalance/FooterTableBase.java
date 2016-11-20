@@ -47,10 +47,8 @@ import java.text.NumberFormat;
 class FooterTableBase extends JTable {
     FooterTableBase(TableModel tableModel) {
         super(tableModel);
-        createDefaultEditors();
         setColumnSelectionAllowed(false);
         setCellSelectionEnabled(true);
-        setCellEditor(new DefaultCellEditor(new JTextField()));
         putClientProperty("terminateEditOnFocusLost", Boolean.TRUE);
     }
 
@@ -67,6 +65,17 @@ class FooterTableBase extends JTable {
             jc.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, Color.BLACK));
         }
         return c;
+    }
+
+    @Override
+    public void columnMarginChanged(ChangeEvent event) {
+        TableColumnModel eventModel = (DefaultTableColumnModel) event.getSource();
+        TableColumnModel thisModel = getColumnModel();
+        int columnCount = eventModel.getColumnCount();
+        for (int i = 0; i < columnCount; i++) {
+            thisModel.getColumn(i).setWidth(eventModel.getColumn(i).getWidth());
+        }
+        repaint();
     }
 
     @Override
@@ -99,17 +108,6 @@ class FooterTableBase extends JTable {
                 renderer = new DefaultTableCellRenderer();
         }
         return renderer;
-    }
-
-    @Override
-    public void columnMarginChanged(ChangeEvent event) {
-        TableColumnModel eventModel = (DefaultTableColumnModel) event.getSource();
-        TableColumnModel thisModel = getColumnModel();
-        int columnCount = eventModel.getColumnCount();
-        for (int i = 0; i < columnCount; i++) {
-            thisModel.getColumn(i).setWidth(eventModel.getColumn(i).getWidth());
-        }
-        repaint();
     }
 
     // Base class for rendering a table cell containing a number of some type. NaN or null produces a blank cell.
@@ -214,7 +212,6 @@ class FooterTableBase extends JTable {
                 super.setValue(value);
                 if (getText().equals(defaultValue)) {
                     setText(StringUtils.formatPercentage(doubleValue, decimalSeparator) + "%");
-
                 }
             } catch (Exception e) {
                 setText("exp");
@@ -237,6 +234,31 @@ class FooterTableBase extends JTable {
             } catch (Exception e) {
                 setText("exp");
             }
+        }
+    }
+
+    // Directly edit percentages (e.g. 5%) although they are represented in the table as fractions (e.g. 0.05)
+    @Override
+    public TableCellEditor getCellEditor(int row, int column) {
+        String columnType = getDataModel().getColumnTypes().get(column);
+        switch (columnType) {
+            case "Percent":
+                return new DefaultCellEditor(new JTextField() {
+                    @Override
+                    public void setText(String r) {
+                        Double perValue = (Double) getValueAt(row, column) * 100.0;
+                        super.setText(perValue.toString());
+                    }
+                }) {
+                    @Override
+                    public Object getCellEditorValue() {
+                        Double perValue = Double.parseDouble((String) super.getCellEditorValue()) / 100.0;
+                        return perValue.toString();
+                    }
+                };
+
+            default:
+                return super.getCellEditor(row, column);
         }
     }
 }
