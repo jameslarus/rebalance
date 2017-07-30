@@ -303,7 +303,11 @@ class ReBalanceWindow extends JFrame implements ChangeListener, ItemListener, Ta
             }
         }
         CurrencyType ct = book.getCurrencies().getCurrencyByName(securityName);
-        return createEntry(data, securityName, ct.getTickerSymbol(), 0.0, 0.0, 0.0, 1.0 / ct.getUserRate(), 0.0);
+        if (ct != null) {
+            return createEntry(data, securityName, ct.getTickerSymbol(), 0.0, 0.0, 0.0, 1.0 / ct.getUserRate(), 0.0);
+        } else {
+            return createEntry(data, securityName, "unknown", 0.0, 0.0, 0.0, 1.0, 0.0);
+        }
     }
 
     // This could be an integer-linear programming problem, but something simpler should work.
