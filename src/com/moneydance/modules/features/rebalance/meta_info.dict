@@ -1,9 +1,9 @@
 {
   "vendor" = "James Larus"
-  "module_build" = "1"
+  "module_build" = "1.1"
   "minbuild" = "1000"
   "vendor.url" = ""
   "module_name" = "ReBalance"
-  "module_desc" = "<html><body><title>ReBalance</title><p>Extension to help rebalance an investment account.</p></body></html>"
-  "desc" = "Extension to help rebalance an investment account."
+  "module_desc" = "<html><body><title>ReBalance</title><p>Extension to help rebalancing investment account.</p></body></html>"
+  "desc" = "Extension to help rebalancing investment account."
 }

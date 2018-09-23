@@ -237,12 +237,12 @@ class FooterTableBase extends JTable {
         }
     }
 
-    // Directly edit percentages (e.g. 5%) although they are represented in the table as fractions (e.g. 0.05)
+    // Directly edit target percentages (e.g. 5%). They are represented in the table as fractions (e.g. 0.05).
     @Override
     public TableCellEditor getCellEditor(int row, int column) {
-        String columnType = getDataModel().getColumnTypes().get(column);
-        switch (columnType) {
-            case "Percent":
+        String columnName = getDataModel().getColumnNames().get(column);
+        switch (columnName) {
+            case "Target":
                 return new DefaultCellEditor(new JTextField() {
                     @Override
                     public void setText(String r) {
@@ -258,7 +258,7 @@ class FooterTableBase extends JTable {
                 };
 
             default:
-                return super.getCellEditor(row, column);
+                return null;
         }
     }
 }

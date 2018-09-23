@@ -50,9 +50,19 @@ class FooterTable extends FooterTableBase {
         setAutoCreateRowSorter(true);
         getRowSorter().toggleSortOrder(0); // Default: sort by symbol
 
-        // Create footer table
-        footerTable = new FooterTableBase(new FooterTableModel(tableModel.getFooterVector(), new Vector<>(),
-                tableModel.getColumnNames(), tableModel.getColumnTypes(), tableModel.getCurrency()));
+        // Create footer table (not editable by user since values are function of account positions).
+        // Could make cash target settable. Would require changes to algorithm since the rebalancing
+        // could be overconstrained.
+        footerTable = new FooterTableBase(new FooterTableModel(tableModel.getFooterVector(),
+            new Vector<>(),
+            tableModel.getColumnNames(),
+            tableModel.getColumnTypes(),
+            tableModel.getCurrency()) {
+                @Override
+                public boolean isCellEditable(int rowIndex, int columnIndex) {
+                    return false;
+                }
+            });
 
         // Link body and footer columns
         // http://stackoverflow.com/questions/2666758/issue-with-resizing-columns-in-a-double-jtable

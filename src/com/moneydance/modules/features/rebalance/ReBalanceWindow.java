@@ -254,18 +254,18 @@ class ReBalanceWindow extends JFrame implements ChangeListener, ItemListener, Ta
         }
 
         // Total value
-        Vector<Object> entry = new Vector<>(names.length);
-        entry.add("Total");
-        entry.add(null);
-        entry.add(null);
-        entry.add(null);
-        entry.add(null);
-        entry.add(null);
-        entry.add(totalValue);
-        entry.add(null);
-        entry.add(null);
-        entry.add(null);
-        footer.add(entry);
+        Vector<Object> totals = new Vector<>(names.length);
+        totals.add("Total");
+        totals.add(null);
+        totals.add(null);
+        totals.add(null);
+        totals.add(null);
+        totals.add(null);
+        totals.add(totalValue);
+        totals.add(null);
+        totals.add(null);
+        totals.add(null);
+        footer.add(totals);
 
         rebalance(data, footer, totalValue);
     }
@@ -312,7 +312,7 @@ class ReBalanceWindow extends JFrame implements ChangeListener, ItemListener, Ta
         }
     }
 
-    // This could be an integer-linear programming problem, but something simpler should work.
+    // Something simple should work.
     // First, find all securities to sell and cash that can be used.
     // Then, compute integer number of shares to buy.
     // Goal: get close to targets, but do not incur unnecessary trading costs (i.e., buy 1 or 2 shares).
@@ -333,8 +333,9 @@ class ReBalanceWindow extends JFrame implements ChangeListener, ItemListener, Ta
         for (Vector<Object> entry : data) {
             entry.set(SELL_COL, null);
             entry.set(BUY_COL, null);
-            availableFunds += extractExcessValue(entry, totalValue);
-            totalTarget += entry.get(TARGET_COL) == null ? 0.0 : (Double) entry.get(TARGET_COL);
+            Double excessAmount = extractExcessValue(entry, totalValue);
+            availableFunds += excessAmount;
+            totalTarget += excessAmount;
         }
 
         // Spend funds on new shares
@@ -353,7 +354,7 @@ class ReBalanceWindow extends JFrame implements ChangeListener, ItemListener, Ta
                 cashEntry.set(BUY_COL, availableFunds - cash);
             }
         }
-        cashEntry.set(TARGET_COL, null); // No cash target
+        //cashEntry.set(TARGET_COL, null); // No cash target
         cashEntry.set(RESULT_COL, availableFunds / totalValue);
 
         footer.get(1).set(TARGET_COL, totalTarget);
