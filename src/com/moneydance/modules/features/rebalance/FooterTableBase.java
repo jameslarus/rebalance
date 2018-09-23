@@ -47,7 +47,6 @@ import java.text.NumberFormat;
 class FooterTableBase extends JTable {
     FooterTableBase(TableModel tableModel) {
         super(tableModel);
-        setColumnSelectionAllowed(false);
         setCellSelectionEnabled(true);
         putClientProperty("terminateEditOnFocusLost", Boolean.TRUE);
     }

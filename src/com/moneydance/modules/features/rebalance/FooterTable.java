@@ -70,6 +70,7 @@ class FooterTable extends FooterTableBase {
         getColumnModel().addColumnModelListener(footerTable);
         footerTable.getColumnModel().addColumnModelListener(this);
         footerTable.getModel().addTableModelListener(this);
+        footerTable.setCellSelectionEnabled(false);
 
         adjustColumnPreferredWidths();
     }
