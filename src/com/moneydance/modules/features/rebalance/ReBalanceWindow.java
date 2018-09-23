@@ -186,7 +186,9 @@ class ReBalanceWindow extends JFrame implements ChangeListener, ItemListener, Ta
 
         if (book != null) {
             for (Account a : book.getRootAccount().getSubAccounts()) {
-                if (a.getAccountType() == AccountType.INVESTMENT && !a.getAccountIsInactive()) {
+                if (a.getAccountType() == AccountType.INVESTMENT
+                        && !a.getAccountIsInactive()
+                        && a.getCurrentBalance() > 0) {
                     accounts.add(a.getAccountName());
                 }
             }
@@ -236,9 +238,11 @@ class ReBalanceWindow extends JFrame implements ChangeListener, ItemListener, Ta
         for (Account a : account.getSubAccounts()) {
             CurrencyType ct = a.getCurrencyType();
             if (a.getAccountType() == AccountType.SECURITY
+                    && !a.getAccountIsInactive()
+                    && a.getCurrentBalance() > 0
                     && !ct.getHideInUI()
-                    && ct.getCurrencyType() == CurrencyType.Type.SECURITY
-                    && a.getCurrentBalance() > 0) {
+                    && ct.getCurrencyType() == CurrencyType.Type.SECURITY) {
+                        System.err.println(a.getAccountName()+a.getCurrentBalance());
                 createEntry(data, a, a.getAccountName(), ct.getTickerSymbol(), totalValue);
             }
         }
