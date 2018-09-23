@@ -239,10 +239,8 @@ class ReBalanceWindow extends JFrame implements ChangeListener, ItemListener, Ta
             CurrencyType ct = a.getCurrencyType();
             if (a.getAccountType() == AccountType.SECURITY
                     && !a.getAccountIsInactive()
-                    && a.getCurrentBalance() > 0
                     && !ct.getHideInUI()
                     && ct.getCurrencyType() == CurrencyType.Type.SECURITY) {
-                        System.err.println(a.getAccountName()+a.getCurrentBalance());
                 createEntry(data, a, a.getAccountName(), ct.getTickerSymbol(), totalValue);
             }
         }
